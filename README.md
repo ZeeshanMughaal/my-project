@@ -33,3 +33,5 @@ Configuar You database Configuration in this file
         ),
         
 under the components array you have to configuar your database
+    afther the database configuration you have to run this command in the terminal 
+    php yiic migrate
