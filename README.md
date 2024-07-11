@@ -1,30 +1,15 @@
 Yii Web Programming Framework
 =============================
 
-Thank you for choosing Yii - a high-performance component-based PHP framework.
-
-[![Build Status](https://github.com/yiisoft/yii/workflows/build/badge.svg)](https://github.com/yiisoft/yii/actions)
-
-> Note that Yii 1.1 [has reached end of life](https://www.yiiframework.com/news/90/update-on-yii-1-1-support-and-end-of-life/)
-  and will only receive necessary security fixes and fixes to adjust the code for compatibility with PHP 7 and 8 if they do not cause breaking changes.
-  This allows you to keep your servers PHP version up to date in the environments where old Yii 1.1 applications are hosted and stay within the [version ranges supported by the PHP team](https://php.net/supported-versions.php).
-> 
-> Currently tested and supported [up to PHP 8.2](https://github.com/yiisoft/yii/blob/master/.github/workflows/build.yml#L34).
 
 INSTALLATION
 ------------
 
-Please make sure the release file is unpacked under a Web-accessible
-directory. You shall see the following files and directories:
+For send email you need to install package 
 
-      demos/               demos
-      framework/           framework source files
-      requirements/        requirement checker
-      CHANGELOG            describing changes in every Yii release
-      LICENSE              license of Yii
-      README               this file
-      UPGRADE              upgrading instructions
+    composer require phpmailer/phpmailer
 
+second you have to configure
 
 REQUIREMENTS
 ------------
