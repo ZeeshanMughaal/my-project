@@ -62,8 +62,6 @@ class Post extends CActiveRecord
 		// class name for the relations automatically generated below.
 		return array(
 			'author' => array(self::BELONGS_TO, 'User', 'author_id'),
-			'comments' => array(self::HAS_MANY, 'Comment', 'post_id', 'condition'=>'comments.status='.Comment::STATUS_APPROVED, 'order'=>'comments.create_time DESC'),
-			'commentCount' => array(self::STAT, 'Comment', 'post_id', 'condition'=>'status='.Comment::STATUS_APPROVED),
 		);
 	}
 
@@ -115,22 +113,6 @@ class Post extends CActiveRecord
 	}
 
 	/**
-	 * Adds a new comment to this post.
-	 * This method will set status and post_id of the comment accordingly.
-	 * @param Comment the comment to be added
-	 * @return boolean whether the comment is saved successfully
-	 */
-	public function addComment($comment)
-	{
-		if(Yii::app()->params['commentNeedApproval'])
-			$comment->status=Comment::STATUS_PENDING;
-		else
-			$comment->status=Comment::STATUS_APPROVED;
-		$comment->post_id=$this->id;
-		return $comment->save();
-	}
-
-	/**
 	 * This is invoked when a record is populated with data from a find() call.
 	 */
 	protected function afterFind()
@@ -175,7 +157,6 @@ class Post extends CActiveRecord
 	protected function afterDelete()
 	{
 		parent::afterDelete();
-		Comment::model()->deleteAll('post_id='.$this->id);
 		Tag::model()->updateFrequency($this->tags, '');
 	}
 
@@ -183,12 +164,20 @@ class Post extends CActiveRecord
 	 * Retrieves the list of posts based on the current search/filter conditions.
 	 * @return CActiveDataProvider the data provider that can return the needed posts.
 	 */
+	public static function isPostLiked($postId)
+    {
+        $userId = Yii::app()->user->id; // Get the current user ID
+        return UserPost::model()->exists('user_id=:userId AND post_id=:postId', array(
+            ':userId' => $userId,
+            ':postId' => $postId,
+        ));
+    }
 	public function search()
 	{
 		$criteria=new CDbCriteria;
 
 		$criteria->compare('title',$this->title,true);
-
+		$criteria->compare('author_id', Yii::app()->user->id);
 		$criteria->compare('status',$this->status);
 
 		return new CActiveDataProvider('Post', array(

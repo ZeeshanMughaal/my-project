@@ -85,6 +85,72 @@ class SiteController extends Controller
 		// display the login form
 		$this->render('login',array('model'=>$model));
 	}
+	public function actionRegister()
+	{
+		$model = new RegistrationForm;
+	
+		// if it is ajax validation request
+		if (isset($_POST['ajax']) && $_POST['ajax'] === 'registration-form') {
+			echo CActiveForm::validate($model);
+			Yii::app()->end();
+		}
+		
+		// collect user input data
+		if (isset($_POST['RegistrationForm'])) {
+			$model->attributes = $_POST['RegistrationForm'];
+			if ($model->validate()) {
+				// Create a new user
+				// Check if the email exists
+				if(isset($model->email)){
+					$email=$model->email;
+						$exists = User::model()->exists('email=:email', array(':email' => $email));
+						if($exists){
+							Yii::app()->user->setFlash('email', 'Email Already Registered Try Other Email Address.');
+							$this->redirect('register');
+						}
+					}
+				$user = new User;
+				$user->username = $model->username;
+				$user->password = CPasswordHelper::hashPassword($model->password);
+				$user->email = $model->email;
+				$user->profile = $model->profile;
+	
+				// Generate a verification token
+				$user->email_verification_token = md5(uniqid($user->email, true));
+				$user->is_verified = 0; // Ensure the user is not verified initially
+	
+				if ($user->save()) {
+					// Send verification email
+					$verifyLink = Yii::app()->createAbsoluteUrl('site/verifyEmail', array('token' => $user->email_verification_token));
+					$message = "Thank you for registering. Please verify your email by clicking the following link: <a href=\"$verifyLink\">Verify Email</a>";
+					Yii::app()->mailer->sendEmail($model->email, "Verify EmailEmail", $message);
+					
+	
+					Yii::app()->user->setFlash('registration', 'Thank you for registering. Please check your email for verification instructions.');
+					$this->refresh();
+				}
+			}
+		}
+	
+		// display the registration form
+		$this->render('register', array('model' => $model));
+	}
+	public function actionVerifyEmail($token)
+	{
+		$user = User::model()->findByAttributes(array('email_verification_token' => $token));
+
+		if ($user !== null) {
+			$user->is_verified = 1; // Mark user as verified
+			$user->email_verification_token = null; // Remove the verification token
+			if ($user->save()) {
+				Yii::app()->user->setFlash('verify', 'Your email has been successfully verified. You can now log in.');
+				$this->redirect(Yii::app()->homeUrl); // Redirect to the homepage or login page
+			}
+		} else {
+			Yii::app()->user->setFlash('error', 'Invalid verification token.');
+			$this->redirect(Yii::app()->homeUrl); // Redirect to the homepage or an error page
+		}
+	}
 
 	/**
 	 * Logs out the current user and redirect to homepage.
@@ -94,4 +160,21 @@ class SiteController extends Controller
 		Yii::app()->user->logout();
 		$this->redirect(Yii::app()->homeUrl);
 	}
+	public function actionVerifyAccount()
+    {
+        $this->render('verifyAccount');
+    }
+	public function actionCheckEmail()
+	{
+		if (Yii::app()->request->isPostRequest) {
+			$email = Yii::app()->request->getPost('email');
+			// print_r($email);die();
+			$exists = User::model()->exists('email=:email', array(':email' => $email));
+			echo CJSON::encode(array('exists' => $exists));
+			Yii::app()->end();
+		} else {
+			throw new CHttpException(400, 'Invalid request. Please do not repeat this request again.');
+		}
+	}
+
 }
