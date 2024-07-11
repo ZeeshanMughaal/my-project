@@ -13,11 +13,12 @@ class PostController extends Controller
 	 * @return array action filters
 	 */
 	public function filters()
-	{
-		return array(
-			'accessControl', // perform access control for CRUD operations
-		);
-	}
+    {
+        return array(
+            'accessControl',
+            array('application.components.VerifiedUserFilter'),
+        );
+    }
 
 	/**
 	 * Specifies the access control rules.
@@ -27,10 +28,7 @@ class PostController extends Controller
 	public function accessRules()
 	{
 		return array(
-			array('allow',  // allow all users to access 'index' and 'view' actions.
-				'actions'=>array('index','view'),
-				'users'=>array('*'),
-			),
+
 			array('allow', // allow authenticated users to access all actions
 				'users'=>array('@'),
 			),
@@ -46,11 +44,9 @@ class PostController extends Controller
 	public function actionView()
 	{
 		$post=$this->loadModel();
-		$comment=$this->newComment($post);
 
 		$this->render('view',array(
 			'model'=>$post,
-			'comment'=>$comment,
 		));
 	}
 
@@ -119,7 +115,6 @@ class PostController extends Controller
 		$criteria=new CDbCriteria(array(
 			'condition'=>'status='.Post::STATUS_PUBLISHED,
 			'order'=>'update_time DESC',
-			'with'=>'commentCount',
 		));
 		if(isset($_GET['tag']))
 			$criteria->addSearchCondition('tags',$_GET['tag']);
@@ -184,33 +179,30 @@ class PostController extends Controller
 		}
 		return $this->_model;
 	}
+	public function actionLikePost(){
+		$postId = $_POST['PostID'];
+		
+    	$userId = Yii::app()->user->id;
+		
+		 // Check if the user_post entry already exists to avoid duplicates
+		 $userPost = UserPost::model()->findByAttributes(array('user_id' => $userId, 'post_id' => $postId));
+		//  print_r($userPost);die();
+		 if ($userPost === null) {
+			 $userPost = new UserPost();
+			 $userPost->user_id = $userId;
+			 $userPost->post_id = $postId;
+			 if ($userPost->save()) {
+				 echo 'liked';
+			 } else {
+				 echo 'Post liked successfully, but failed to add entry to user_post table';
+				 $errors = $userPost->getErrors();
+				 foreach ($errors as $error) {
+					 echo implode(', ', $error);
+				 }
+			 }
+		 } else {
+			 echo 'AlreadyLiked';
+		 }
 
-	/**
-	 * Creates a new comment.
-	 * This method attempts to create a new comment based on the user input.
-	 * If the comment is successfully created, the browser will be redirected
-	 * to show the created comment.
-	 * @param Post the post that the new comment belongs to
-	 * @return Comment the comment instance
-	 */
-	protected function newComment($post)
-	{
-		$comment=new Comment;
-		if(isset($_POST['ajax']) && $_POST['ajax']==='comment-form')
-		{
-			echo CActiveForm::validate($comment);
-			Yii::app()->end();
-		}
-		if(isset($_POST['Comment']))
-		{
-			$comment->attributes=$_POST['Comment'];
-			if($post->addComment($comment))
-			{
-				if($comment->status==Comment::STATUS_PENDING)
-					Yii::app()->user->setFlash('commentSubmitted','Thank you for your comment. Your comment will be posted once it is approved.');
-				$this->refresh();
-			}
-		}
-		return $comment;
 	}
 }
